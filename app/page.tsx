@@ -1,9 +1,6 @@
-<Link
-  href="/clients"
-  className="block rounded-lg px-4 py-3 hover:bg-gray-100"
->
-  Clients
-</Link>export default function Home() {
+import Link from "next/link";
+
+export default function Home() {
   return (
     <main className="min-h-screen bg-gray-100 text-gray-900">
       <header className="border-b bg-white">
@@ -30,7 +27,13 @@
               Dashboard
             </div>
 
-            <div className="px-4 py-3">Clients</div>
+            <Link
+              href="/clients"
+              className="block rounded-lg px-4 py-3 hover:bg-gray-100"
+            >
+              Clients
+            </Link>
+
             <div className="px-4 py-3">Matters</div>
             <div className="px-4 py-3">Tasks</div>
             <div className="px-4 py-3">Deadlines</div>
@@ -39,7 +42,7 @@
             <div className="px-4 py-3">Legal Knowledge</div>
             <div className="px-4 py-3">Finance</div>
 
-            <div className="mt-6 border-t pt-6 px-4 py-3">
+            <div className="mt-6 border-t px-4 py-3 pt-6">
               Administration
             </div>
           </nav>
@@ -50,31 +53,17 @@
             <h2 className="text-3xl font-bold">
               Dashboard
             </h2>
+
             <p className="mt-2 text-gray-500">
               Overview of your legal practice.
             </p>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            <DashboardCard
-              title="Active Matters"
-              value="0"
-            />
-
-            <DashboardCard
-              title="Due Today"
-              value="0"
-            />
-
-            <DashboardCard
-              title="Overdue"
-              value="0"
-            />
-
-            <DashboardCard
-              title="High Risk"
-              value="0"
-            />
+            <DashboardCard title="Active Matters" value="0" />
+            <DashboardCard title="Due Today" value="0" />
+            <DashboardCard title="Overdue" value="0" />
+            <DashboardCard title="High Risk" value="0" />
           </div>
 
           <div className="mt-8 grid gap-6 lg:grid-cols-2">
