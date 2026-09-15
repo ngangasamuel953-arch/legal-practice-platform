@@ -1,0 +1,141 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum UserRole {
+  ADMIN
+  PARTNER
+  ADVOCATE
+  PARALEGAL
+  SECRETARY
+  ACCOUNTS
+  SUPPORT
+}
+
+enum ClientType {
+  INDIVIDUAL
+  COMPANY
+  PARTNERSHIP
+  GOVERNMENT
+  NGO
+  TRUST
+  OTHER
+}
+
+enum ClientStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum MatterStatus {
+  OPEN
+  ACTIVE
+  ON_HOLD
+  CLOSED
+  ARCHIVED
+}
+
+enum MatterType {
+  LITIGATION
+  CORPORATE
+  COMMERCIAL
+  CONVEYANCING
+  INTELLECTUAL_PROPERTY
+  EMPLOYMENT
+  FAMILY
+  PROBATE
+  TAX
+  COMPLIANCE
+  ARBITRATION
+  MEDIATION
+  GENERAL
+  OTHER
+}
+
+model User {
+  id           String     @id @default(cuid())
+  firstName    String
+  lastName     String
+  email        String     @unique
+  phone        String?
+  role         UserRole   @default(ADVOCATE)
+  status       UserStatus @default(ACTIVE)
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  clients      Client[]   @relation("ClientResponsibleUser")
+  matters      Matter[]   @relation("MatterResponsibleUser")
+}
+
+model Client {
+  id                  String       @id @default(cuid())
+  clientNumber        String       @unique
+  type                ClientType
+  status              ClientStatus @default(ACTIVE)
+
+  name                String
+  email               String?
+  phone               String?
+  alternativePhone    String?
+  postalAddress       String?
+  physicalAddress     String?
+  city                String?
+  country             String?      @default("Kenya")
+
+  notes               String?
+
+  responsibleUserId   String?
+  responsibleUser     User?        @relation("ClientResponsibleUser", fields: [responsibleUserId], references: [id])
+
+  matters             Matter[]
+
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@index([name])
+  @@index([status])
+  @@index([responsibleUserId])
+}
+
+model Matter {
+  id                  String       @id @default(cuid())
+  matterNumber        String       @unique
+  title               String
+  description         String?
+
+  type                MatterType
+  status              MatterStatus @default(OPEN)
+
+  clientId            String
+  client              Client       @relation(fields: [clientId], references: [id])
+
+  responsibleUserId   String?
+  responsibleUser     User?        @relation("MatterResponsibleUser", fields: [responsibleUserId], references: [id])
+
+  openedAt            DateTime     @default(now())
+  closedAt            DateTime?
+
+  notes               String?
+
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@index([clientId])
+  @@index([status])
+  @@index([type])
+  @@index([responsibleUserId])
+  @@index([openedAt])
+}
