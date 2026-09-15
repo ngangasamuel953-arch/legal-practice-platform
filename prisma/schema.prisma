@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -64,6 +63,53 @@ enum MatterType {
   OTHER
 }
 
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum DeadlineStatus {
+  UPCOMING
+  DUE
+  COMPLETED
+  OVERDUE
+  CANCELLED
+}
+
+enum ActivityType {
+  NOTE
+  TASK_CREATED
+  TASK_COMPLETED
+  DEADLINE_CREATED
+  DEADLINE_COMPLETED
+  STATUS_CHANGE
+  DOCUMENT_ADDED
+  CORRESPONDENCE_ADDED
+  COURT_EVENT
+  IP_EVENT
+  PAYMENT
+  GENERAL
+}
+
+enum NotificationType {
+  TASK
+  DEADLINE
+  SYSTEM
+  MATTER
+  DOCUMENT
+  FINANCE
+}
+
 model User {
   id           String     @id @default(cuid())
   firstName    String
@@ -78,6 +124,15 @@ model User {
 
   clients      Client[]   @relation("ClientResponsibleUser")
   matters      Matter[]   @relation("MatterResponsibleUser")
+
+  assignedTasks Task[]    @relation("TaskAssignee")
+  createdTasks  Task[]     @relation("TaskCreator")
+
+  deadlines     Deadline[] @relation("DeadlineResponsibleUser")
+
+  activities    Activity[]
+
+  notifications Notification[]
 }
 
 model Client {
@@ -130,6 +185,10 @@ model Matter {
 
   notes               String?
 
+  tasks               Task[]
+  deadlines           Deadline[]
+  activities          Activity[]
+
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
 
@@ -138,4 +197,112 @@ model Matter {
   @@index([type])
   @@index([responsibleUserId])
   @@index([openedAt])
+}
+
+model Task {
+  id                  String       @id @default(cuid())
+
+  title               String
+  description         String?
+
+  status              TaskStatus   @default(TODO)
+  priority            TaskPriority @default(NORMAL)
+
+  matterId            String
+  matter              Matter       @relation(fields: [matterId], references: [id])
+
+  assigneeId          String?
+  assignee            User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  createdById         String?
+  createdBy           User?        @relation("TaskCreator", fields: [createdById], references: [id])
+
+  dueAt               DateTime?
+  completedAt         DateTime?
+
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  deadlines           Deadline[]
+
+  @@index([matterId])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([priority])
+  @@index([dueAt])
+}
+
+model Deadline {
+  id                  String         @id @default(cuid())
+
+  title               String
+  description         String?
+
+  dueAt               DateTime
+  status              DeadlineStatus @default(UPCOMING)
+
+  matterId            String
+  matter              Matter         @relation(fields: [matterId], references: [id])
+
+  responsibleUserId   String?
+  responsibleUser     User?          @relation("DeadlineResponsibleUser", fields: [responsibleUserId], references: [id])
+
+  taskId              String?
+  task                Task?          @relation(fields: [taskId], references: [id])
+
+  completedAt         DateTime?
+
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@index([matterId])
+  @@index([responsibleUserId])
+  @@index([taskId])
+  @@index([dueAt])
+  @@index([status])
+}
+
+model Activity {
+  id                  String       @id @default(cuid())
+
+  type                ActivityType @default(GENERAL)
+  title               String
+  description         String?
+
+  matterId            String
+  matter              Matter       @relation(fields: [matterId], references: [id])
+
+  userId              String?
+  user                User?        @relation(fields: [userId], references: [id])
+
+  createdAt           DateTime     @default(now())
+
+  @@index([matterId])
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Notification {
+  id                  String           @id @default(cuid())
+
+  type                NotificationType
+  title               String
+  message             String
+
+  userId              String
+  user                User             @relation(fields: [userId], references: [id])
+
+  entityType          String?
+  entityId            String?
+
+  readAt              DateTime?
+  scheduledFor        DateTime?
+
+  createdAt           DateTime         @default(now())
+
+  @@index([userId])
+  @@index([readAt])
+  @@index([scheduledFor])
+  @@index([entityType, entityId])
 }
