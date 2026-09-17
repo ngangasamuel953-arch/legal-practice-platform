@@ -6,6 +6,161 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id            String         @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String         @unique
+  phone         String?
+  role          UserRole       @default(ADVOCATE)
+  status        UserStatus     @default(ACTIVE)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  activities    Activity[]
+  clients       Client[]       @relation("ClientResponsibleUser")
+  deadlines     Deadline[]     @relation("DeadlineResponsibleUser")
+  matters       Matter[]       @relation("MatterResponsibleUser")
+  notifications Notification[]
+  assignedTasks Task[]         @relation("TaskAssignee")
+  createdTasks  Task[]         @relation("TaskCreator")
+}
+
+model Client {
+  id                String       @id @default(cuid())
+  clientNumber      String       @unique
+  type              ClientType
+  status            ClientStatus @default(ACTIVE)
+  name              String
+  email             String?
+  phone             String?
+  alternativePhone  String?
+  postalAddress     String?
+  physicalAddress   String?
+  city              String?
+  country           String?      @default("Kenya")
+  notes             String?
+  responsibleUserId String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  responsibleUser   User?        @relation("ClientResponsibleUser", fields: [responsibleUserId], references: [id])
+  matters           Matter[]
+
+  @@index([name])
+  @@index([status])
+  @@index([responsibleUserId])
+}
+
+model Matter {
+  id                String       @id @default(cuid())
+  matterNumber      String       @unique
+  title             String
+  description       String?
+  type              MatterType
+  status            MatterStatus @default(OPEN)
+  clientId          String
+  responsibleUserId String?
+  openedAt          DateTime     @default(now())
+  closedAt          DateTime?
+  notes             String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  activities        Activity[]
+  deadlines         Deadline[]
+  client            Client       @relation(fields: [clientId], references: [id])
+  responsibleUser   User?        @relation("MatterResponsibleUser", fields: [responsibleUserId], references: [id])
+  tasks             Task[]
+
+  @@index([clientId])
+  @@index([status])
+  @@index([type])
+  @@index([responsibleUserId])
+  @@index([openedAt])
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(NORMAL)
+  matterId    String
+  assigneeId  String?
+  createdById String?
+  dueAt       DateTime?
+  completedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deadlines   Deadline[]
+  assignee    User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdBy   User?        @relation("TaskCreator", fields: [createdById], references: [id])
+  matter      Matter       @relation(fields: [matterId], references: [id])
+
+  @@index([matterId])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([priority])
+  @@index([dueAt])
+}
+
+model Deadline {
+  id                String         @id @default(cuid())
+  title             String
+  description       String?
+  dueAt             DateTime
+  status            DeadlineStatus @default(UPCOMING)
+  matterId          String
+  responsibleUserId String?
+  taskId            String?
+  completedAt       DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  matter            Matter         @relation(fields: [matterId], references: [id])
+  responsibleUser   User?          @relation("DeadlineResponsibleUser", fields: [responsibleUserId], references: [id])
+  task              Task?          @relation(fields: [taskId], references: [id])
+
+  @@index([matterId])
+  @@index([responsibleUserId])
+  @@index([taskId])
+  @@index([dueAt])
+  @@index([status])
+}
+
+model Activity {
+  id          String       @id @default(cuid())
+  type        ActivityType @default(GENERAL)
+  title       String
+  description String?
+  matterId    String
+  userId      String?
+  createdAt   DateTime     @default(now())
+  matter      Matter       @relation(fields: [matterId], references: [id])
+  user        User?        @relation(fields: [userId], references: [id])
+
+  @@index([matterId])
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Notification {
+  id           String           @id @default(cuid())
+  type         NotificationType
+  title        String
+  message      String
+  userId       String
+  entityType   String?
+  entityId     String?
+  readAt       DateTime?
+  scheduledFor DateTime?
+  createdAt    DateTime         @default(now())
+  user         User             @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([readAt])
+  @@index([scheduledFor])
+  @@index([entityType, entityId])
+}
+
 enum UserStatus {
   ACTIVE
   INACTIVE
@@ -108,201 +263,4 @@ enum NotificationType {
   MATTER
   DOCUMENT
   FINANCE
-}
-
-model User {
-  id           String     @id @default(cuid())
-  firstName    String
-  lastName     String
-  email        String     @unique
-  phone        String?
-  role         UserRole   @default(ADVOCATE)
-  status       UserStatus @default(ACTIVE)
-
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  clients      Client[]   @relation("ClientResponsibleUser")
-  matters      Matter[]   @relation("MatterResponsibleUser")
-
-  assignedTasks Task[]    @relation("TaskAssignee")
-  createdTasks  Task[]     @relation("TaskCreator")
-
-  deadlines     Deadline[] @relation("DeadlineResponsibleUser")
-
-  activities    Activity[]
-
-  notifications Notification[]
-}
-
-model Client {
-  id                  String       @id @default(cuid())
-  clientNumber        String       @unique
-  type                ClientType
-  status              ClientStatus @default(ACTIVE)
-
-  name                String
-  email               String?
-  phone               String?
-  alternativePhone    String?
-  postalAddress       String?
-  physicalAddress     String?
-  city                String?
-  country             String?      @default("Kenya")
-
-  notes               String?
-
-  responsibleUserId   String?
-  responsibleUser     User?        @relation("ClientResponsibleUser", fields: [responsibleUserId], references: [id])
-
-  matters             Matter[]
-
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
-
-  @@index([name])
-  @@index([status])
-  @@index([responsibleUserId])
-}
-
-model Matter {
-  id                  String       @id @default(cuid())
-  matterNumber        String       @unique
-  title               String
-  description         String?
-
-  type                MatterType
-  status              MatterStatus @default(OPEN)
-
-  clientId            String
-  client              Client       @relation(fields: [clientId], references: [id])
-
-  responsibleUserId   String?
-  responsibleUser     User?        @relation("MatterResponsibleUser", fields: [responsibleUserId], references: [id])
-
-  openedAt            DateTime     @default(now())
-  closedAt            DateTime?
-
-  notes               String?
-
-  tasks               Task[]
-  deadlines           Deadline[]
-  activities          Activity[]
-
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
-
-  @@index([clientId])
-  @@index([status])
-  @@index([type])
-  @@index([responsibleUserId])
-  @@index([openedAt])
-}
-
-model Task {
-  id                  String       @id @default(cuid())
-
-  title               String
-  description         String?
-
-  status              TaskStatus   @default(TODO)
-  priority            TaskPriority @default(NORMAL)
-
-  matterId            String
-  matter              Matter       @relation(fields: [matterId], references: [id])
-
-  assigneeId          String?
-  assignee            User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
-
-  createdById         String?
-  createdBy           User?        @relation("TaskCreator", fields: [createdById], references: [id])
-
-  dueAt               DateTime?
-  completedAt         DateTime?
-
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
-
-  deadlines           Deadline[]
-
-  @@index([matterId])
-  @@index([assigneeId])
-  @@index([status])
-  @@index([priority])
-  @@index([dueAt])
-}
-
-model Deadline {
-  id                  String         @id @default(cuid())
-
-  title               String
-  description         String?
-
-  dueAt               DateTime
-  status              DeadlineStatus @default(UPCOMING)
-
-  matterId            String
-  matter              Matter         @relation(fields: [matterId], references: [id])
-
-  responsibleUserId   String?
-  responsibleUser     User?          @relation("DeadlineResponsibleUser", fields: [responsibleUserId], references: [id])
-
-  taskId              String?
-  task                Task?          @relation(fields: [taskId], references: [id])
-
-  completedAt         DateTime?
-
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
-
-  @@index([matterId])
-  @@index([responsibleUserId])
-  @@index([taskId])
-  @@index([dueAt])
-  @@index([status])
-}
-
-model Activity {
-  id                  String       @id @default(cuid())
-
-  type                ActivityType @default(GENERAL)
-  title               String
-  description         String?
-
-  matterId            String
-  matter              Matter       @relation(fields: [matterId], references: [id])
-
-  userId              String?
-  user                User?        @relation(fields: [userId], references: [id])
-
-  createdAt           DateTime     @default(now())
-
-  @@index([matterId])
-  @@index([userId])
-  @@index([type])
-  @@index([createdAt])
-}
-
-model Notification {
-  id                  String           @id @default(cuid())
-
-  type                NotificationType
-  title               String
-  message             String
-
-  userId              String
-  user                User             @relation(fields: [userId], references: [id])
-
-  entityType          String?
-  entityId            String?
-
-  readAt              DateTime?
-  scheduledFor        DateTime?
-
-  createdAt           DateTime         @default(now())
-
-  @@index([userId])
-  @@index([readAt])
-  @@index([scheduledFor])
-  @@index([entityType, entityId])
 }
